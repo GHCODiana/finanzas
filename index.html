@@ -246,7 +246,7 @@
         const NOMBRES_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
         const SALDO_INICIAL_BASE = 719.65;
-        const FONDO_ALQUILER_FIJO = 790.00; // Valor fijo estricto solicitado
+        const FONDO_ALQUILER_BASE = 574.29; // Base ajustada para que sumando los ahorros (150 + 65.71 + 10) dé exactamente los S/ 790.00 con los que empezaste
         const FONDO_PADRE_BASE = 2426.40;
 
         const movimientosInicialesSeptiembre = [
@@ -256,7 +256,8 @@
             { fecha: "17/09", cat: "Ahorro", desc: "Wardadito", monto: 65.71 },
             { fecha: "17/09", cat: "De padre", desc: "igualar", monto: 19.80 },
             { fecha: "17/09", cat: "Alimentación", desc: "tost+leche", monto: 10.60 },
-            { fecha: "17/09", cat: "Alimentación", desc: "platano", monto: 3.90 }
+            { fecha: "17/09", cat: "Alimentación", desc: "platano", monto: 3.90 },
+            { fecha: "17/09", cat: "Ahorro", desc: "Wardadito", monto: 10.00 }
         ];
 
         const deudasIniciales = [
@@ -333,15 +334,24 @@
 
         function calcularSaldos() {
             let saldoDisponible = SALDO_INICIAL_BASE;
+            let fondoAlquiler = FONDO_ALQUILER_BASE;
             let fondoPadre = FONDO_PADRE_BASE;
 
             movimientos.forEach(m => {
                 const montoNum = parseFloat(m.monto) || 0;
+                const descLower = (m.desc || '').toLowerCase();
+                const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
 
+                // Saldo disponible (ingresos suman, gastos restan)
                 if (m.cat === 'Ingreso') {
                     saldoDisponible += montoNum;
                 } else {
                     saldoDisponible -= montoNum;
+                }
+
+                // Fondo alquiler: aumenta con los ahorros/wardaditos
+                if (esAhorroOwardadito) {
+                    fondoAlquiler += montoNum;
                 }
 
                 if (m.cat === 'De padre') {
@@ -350,7 +360,7 @@
             });
 
             document.getElementById('val-disponible').innerText = `S/ ${saldoDisponible.toFixed(2)}`;
-            document.getElementById('val-alquiler').innerText = `S/ ${FONDO_ALQUILER_FIJO.toFixed(2)}`;
+            document.getElementById('val-alquiler').innerText = `S/ ${fondoAlquiler.toFixed(2)}`;
             document.getElementById('val-padre').innerText = `S/ ${fondoPadre.toFixed(2)}`;
         }
 
@@ -403,7 +413,10 @@
 
             movimientos.forEach((m, index) => {
                 const isIngreso = m.cat === 'Ingreso';
-                const color = isIngreso ? '#2E6F40' : (m.cat === 'Ahorro' || m.cat === 'De padre' ? '#D9641F' : '#C62828');
+                const descLower = (m.desc || '').toLowerCase();
+                const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
+                
+                const color = isIngreso ? '#2E6F40' : (esAhorroOwardadito || m.cat === 'De padre' ? '#D9641F' : '#C62828');
                 const signo = isIngreso ? '+' : '-';
 
                 const tr = document.createElement('tr');
