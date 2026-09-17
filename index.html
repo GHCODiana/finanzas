@@ -31,8 +31,12 @@
             background-color: #FFF0ED; border: 1px solid #F2C9E4; border-radius: 12px; padding: 16px; margin-bottom: 20px;
             display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
         }
-        header h1 { color: var(--accent-orange); font-size: 1.2rem; font-weight: 700; }
+        .header-title-container { display: flex; align-items: center; gap: 12px; }
+        header h1 { color: var(--accent-orange); font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
         header p { color: var(--text-secondary); font-size: 0.9rem; }
+        
+        .btn-mes { background: white; border: 1px solid var(--border-color); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; font-weight: bold; color: var(--accent-orange); display: flex; align-items: center; justify-content: center; }
+        .btn-mes:hover { background: var(--accent-orange); color: white; }
 
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .kpi-card { border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); }
@@ -80,10 +84,12 @@
 <body>
 
     <header>
-        <div>
+        <div class="header-title-container">
+            <button class="btn-mes" onclick="cambiarMes(-1)">❮</button>
             <h1 id="header-mes">SEPTIEMBRE 2026</h1>
-            <p>Control Financiero Personal, Deudas & Emprendimiento</p>
+            <button class="btn-mes" onclick="cambiarMes(1)">❯</button>
         </div>
+        <p>Control Financiero Personal, Deudas & Emprendimiento</p>
     </header>
 
     <section class="kpi-grid">
@@ -139,7 +145,6 @@
                 <div class="checklist-item"><input type="checkbox" id="chk-4" onchange="guardarCheckboxes()"> Celular 24/Set (S/ 26)</div>
             </div>
 
-            <!-- Sección del Gráfico Circular -->
             <div class="card-box">
                 <h2>📊 Distribución de Egresos</h2>
                 <div class="chart-container">
@@ -209,38 +214,79 @@
         let movimientos = [];
         let chartInstance = null;
 
+        // Fecha actual de navegación (Año y Mes)
+        let fechaNavegacion = new Date(2026, 8, 1); // Septiembre 2026 (Mes 8 en JS es Septiembre)
+        const NOMBRES_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+
         const SALDO_INICIAL_BASE = 719.65;
 
-        const movimientosIniciales = [
+        const movimientosInicialesSeptiembre = [
             { fecha: "01/09", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00 },
             { fecha: "01/09", cat: "Ahorro", desc: "Wardadito Q1", monto: 150.00 },
             { fecha: "15/09", cat: "Ingreso", desc: "Sueldo Q1", monto: 310.00 }
         ];
 
         document.addEventListener("DOMContentLoaded", () => {
+            actualizarVistaMes();
+            cargarMovimientosMes();
+            cargarCheckboxes();
+        });
+
+        function obtenerClaveStorage() {
+            const anio = fechaNavegacion.getFullYear();
+            const mes = (fechaNavegacion.getMonth() + 1).toString().padStart(2, '0');
+            return `movimientos_${anio}_${mes}`;
+        }
+
+        function cambiarMes(direccion) {
+            fechaNavegacion.setMonth(fechaNavegacion.getMonth() + direccion);
+            actualizarVistaMes();
+            cargarMovimientosMes();
+        }
+
+        function actualizarVistaMes() {
+            const mesIdx = fechaNavegacion.getMonth();
+            const anio = fechaNavegacion.getFullYear();
+            const textoMesAnio = `${NOMBRES_MESES[mesIdx]} ${anio}`;
+
+            document.getElementById('header-mes').innerText = textoMesAnio;
+            document.getElementById('cal-titulo').innerText = textoMesAnio;
+
+            // Marcar día actual en calendario si coincide con el mes/año actual
             const hoy = new Date();
-            const diaActual = hoy.getDate();
             const celdas = document.querySelectorAll('.cal-day[data-day]');
             celdas.forEach(celda => {
-                if (parseInt(celda.getAttribute('data-day')) === diaActual) {
+                celda.classList.remove('cal-today');
+                if (fechaNavegacion.getMonth() === hoy.getMonth() && 
+                    fechaNavegacion.getFullYear() === hoy.getFullYear() && 
+                    parseInt(celda.getAttribute('data-day')) === hoy.getDate()) {
                     celda.classList.add('cal-today');
                 }
             });
 
-            const mesActual = (hoy.getMonth() + 1).toString().padStart(2, '0');
-            const diaFormat = diaActual.toString().padStart(2, '0');
-            document.getElementById('inp-fecha').value = `${diaFormat}/${mesActual}`;
+            // Input fecha por defecto
+            const mesFormat = (mesIdx + 1).toString().padStart(2, '0');
+            const diaFormat = (fechaNavegacion.getMonth() === hoy.getMonth() && fechaNavegacion.getFullYear() === hoy.getFullYear()) ? hoy.getDate().toString().padStart(2, '0') : '01';
+            document.getElementById('inp-fecha').value = `${diaFormat}/${mesFormat}`;
+        }
 
-            const movsGuardados = localStorage.getItem('movimientos_finanzas');
+        function cargarMovimientosMes() {
+            const clave = obtenerClaveStorage();
+            const movsGuardados = localStorage.getItem(clave);
+
             if (movsGuardados) {
                 movimientos = JSON.parse(movsGuardados);
             } else {
-                movimientos = [...movimientosIniciales];
+                // Si es septiembre 2026 cargamos los de prueba, otros meses arrancan vacíos
+                if (fechaNavegacion.getMonth() === 8 && fechaNavegacion.getFullYear() === 2026) {
+                    movimientos = [...movimientosInicialesSeptiembre];
+                } else {
+                    movimientos = [];
+                }
                 guardarEnStorage();
             }
             renderizarTabla();
-            cargarCheckboxes();
-        });
+        }
 
         function calcularSaldoDisponible() {
             let saldo = SALDO_INICIAL_BASE;
@@ -260,7 +306,6 @@
         function actualizarGrafico() {
             const ctx = document.getElementById('graficoGastos').getContext('2d');
             
-            // Agrupar gastos por categoría (excluyendo ingresos)
             const gastosPorCat = {};
             movimientos.forEach(m => {
                 if (m.cat !== 'Ingreso') {
@@ -276,10 +321,7 @@
                 chartInstance.destroy();
             }
 
-            if (labels.length === 0) {
-                // Si no hay gastos, mostramos un gráfico vacío o limpio
-                return;
-            }
+            if (labels.length === 0) return;
 
             chartInstance = new Chart(ctx, {
                 type: 'doughnut',
@@ -287,9 +329,7 @@
                     labels: labels,
                     datasets: [{
                         data: data,
-                        backgroundColor: [
-                            '#D9641F', '#2E6F40', '#6B4E71', '#3498DB', '#F1C40F', '#E74C3C', '#1ABC9C'
-                        ],
+                        backgroundColor: ['#D4A29C', '#EDCC8B', '#E8B298', '#B0E1E3', '#976434', '#8D9FCE', '#D8E098'],
                         borderWidth: 1
                     }]
                 },
@@ -352,10 +392,11 @@
             renderizarTabla();
             document.getElementById('form-movimiento').reset();
 
+            const mesIdx = fechaNavegacion.getMonth() + 1;
+            const mesFormat = mesIdx.toString().padStart(2, '0');
             const hoy = new Date();
-            const mesActual = (hoy.getMonth() + 1).toString().padStart(2, '0');
-            const diaFormat = hoy.getDate().toString().padStart(2, '0');
-            document.getElementById('inp-fecha').value = `${diaFormat}/${mesActual}`;
+            const diaFormat = (fechaNavegacion.getMonth() === hoy.getMonth() && fechaNavegacion.getFullYear() === hoy.getFullYear()) ? hoy.getDate().toString().padStart(2, '0') : '01';
+            document.getElementById('inp-fecha').value = `${diaFormat}/${mesFormat}`;
         }
 
         function editarMovimiento(index) {
@@ -377,7 +418,8 @@
         }
 
         function guardarEnStorage() {
-            localStorage.setItem('movimientos_finanzas', JSON.stringify(movimientos));
+            const clave = obtenerClaveStorage();
+            localStorage.setItem(clave, JSON.stringify(movimientos));
         }
 
         function guardarCheckboxes() {
