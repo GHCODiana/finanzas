@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Financiero Personal</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js para el gráfico circular -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-main: #FDFBF7;
@@ -71,6 +73,8 @@
         .cal-today { background: var(--accent-orange); color: white; font-weight: 700; border-radius: 50%; }
         .cal-alquiler { background: #FFB5A7; font-weight: 700; }
         .cal-celular { background: #FFF6D6; border: 1px solid #FDCB7B; }
+
+        .chart-container { position: relative; width: 100%; max-width: 250px; margin: 0 auto; height: 250px; }
     </style>
 </head>
 <body>
@@ -134,6 +138,14 @@
                 <div class="checklist-item"><input type="checkbox" id="chk-3" onchange="guardarCheckboxes()"> Ahorro Q2 (S/ 150)</div>
                 <div class="checklist-item"><input type="checkbox" id="chk-4" onchange="guardarCheckboxes()"> Celular 24/Set (S/ 26)</div>
             </div>
+
+            <!-- Sección del Gráfico Circular -->
+            <div class="card-box">
+                <h2>📊 Distribución de Egresos</h2>
+                <div class="chart-container">
+                    <canvas id="graficoGastos"></canvas>
+                </div>
+            </div>
         </aside>
 
         <main>
@@ -195,8 +207,8 @@
     <script>
         let filaEditandoIndex = null;
         let movimientos = [];
+        let chartInstance = null;
 
-        // Saldo base con el que inicias el mes
         const SALDO_INICIAL_BASE = 719.65;
 
         const movimientosIniciales = [
@@ -236,13 +248,62 @@
             movimientos.forEach(m => {
                 const montoNum = parseFloat(m.monto) || 0;
                 if (m.cat === 'Ingreso') {
-                    saldo += montoNum; // Suman los ingresos
+                    saldo += montoNum;
                 } else {
-                    saldo -= montoNum; // Restan gastos, ahorros y alquileres
+                    saldo -= montoNum;
                 }
             });
 
             document.getElementById('val-disponible').innerText = `S/ ${saldo.toFixed(2)}`;
+        }
+
+        function actualizarGrafico() {
+            const ctx = document.getElementById('graficoGastos').getContext('2d');
+            
+            // Agrupar gastos por categoría (excluyendo ingresos)
+            const gastosPorCat = {};
+            movimientos.forEach(m => {
+                if (m.cat !== 'Ingreso') {
+                    const monto = parseFloat(m.monto) || 0;
+                    gastosPorCat[m.cat] = (gastosPorCat[m.cat] || 0) + monto;
+                }
+            });
+
+            const labels = Object.keys(gastosPorCat);
+            const data = Object.values(gastosPorCat);
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            if (labels.length === 0) {
+                // Si no hay gastos, mostramos un gráfico vacío o limpio
+                return;
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#D9641F', '#2E6F40', '#6B4E71', '#3498DB', '#F1C40F', '#E74C3C', '#1ABC9C'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 11 } }
+                        }
+                    }
+                }
+            });
         }
 
         function renderizarTabla() {
@@ -269,6 +330,7 @@
             });
 
             calcularSaldoDisponible();
+            actualizarGrafico();
         }
 
         function agregarMovimiento(e) {
