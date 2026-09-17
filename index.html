@@ -195,11 +195,10 @@
     <script>
         let filaEditandoIndex = null;
         let movimientos = [];
-        
-        // Saldo base inicial antes de aplicar movimientos del mes
-        const SALDO_INICIAL_BASE = 719.65;
 
-        // Datos por defecto si no existen en el almacenamiento
+        // Saldo base con el que inicias el mes
+        const SALDO_INICIAL_BASE = 159.65;
+
         const movimientosIniciales = [
             { fecha: "01/09", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00 },
             { fecha: "01/09", cat: "Ahorro", desc: "Wardadito Q1", monto: 150.00 },
@@ -207,7 +206,6 @@
         ];
 
         document.addEventListener("DOMContentLoaded", () => {
-            // 1. Calendario con fecha real
             const hoy = new Date();
             const diaActual = hoy.getDate();
             const celdas = document.querySelectorAll('.cal-day[data-day]');
@@ -221,7 +219,6 @@
             const diaFormat = diaActual.toString().padStart(2, '0');
             document.getElementById('inp-fecha').value = `${diaFormat}/${mesActual}`;
 
-            // 2. Cargar movimientos guardados
             const movsGuardados = localStorage.getItem('movimientos_finanzas');
             if (movsGuardados) {
                 movimientos = JSON.parse(movsGuardados);
@@ -230,23 +227,21 @@
                 guardarEnStorage();
             }
             renderizarTabla();
-
-            // 3. Cargar checkboxes guardados
             cargarCheckboxes();
         });
 
         function calcularSaldoDisponible() {
             let saldo = SALDO_INICIAL_BASE;
+
             movimientos.forEach(m => {
                 const montoNum = parseFloat(m.monto) || 0;
                 if (m.cat === 'Ingreso') {
-                    saldo += montoNum;
-                } else if (m.cat === 'Alquiler') {
-                    // El pago de alquiler se maneja con su propio fondo
+                    saldo += montoNum; // Suman los ingresos
                 } else {
-                    saldo -= montoNum;
+                    saldo -= montoNum; // Restan gastos, ahorros y alquileres
                 }
             });
+
             document.getElementById('val-disponible').innerText = `S/ ${saldo.toFixed(2)}`;
         }
 
