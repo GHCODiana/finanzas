@@ -108,12 +108,12 @@
         </div>
         <div class="kpi-card kpi-joyas">
             <h3>Capital Joyas</h3>
-            <div class="amount">S/ 200.00</div>
-            <small style="font-size: 0.7rem;">Fondo Protegido</small>
+            <div class="amount" id="val-joyas">S/ 200.00</div>
+            <small style="font-size: 0.7rem;">NEREIDA 950</small>
         </div>
         <div class="kpi-card kpi-padre">
             <h3>Fondo Padre</h3>
-            <div class="amount" id="val-padre">S/ 2,386.80</div>
+            <div class="amount" id="val-padre">S/ 2,406.60</div>
             <small style="font-size: 0.7rem;">Dinámico</small>
         </div>
         <div class="kpi-card kpi-cobrar">
@@ -191,6 +191,7 @@
                         <option>Alquiler</option>
                         <option>Ahorro</option>
                         <option>De padre</option>
+                        <option>Joyas</option>
                         <option>Ingreso</option>
                         <option>Otro</option>
                     </select>
@@ -201,13 +202,12 @@
             </div>
 
             <div class="card-box" style="background: #FAFAFA;">
-                <h2>Cuentas por Cobrar & Por Pagar (Personalizadas)</h2>
+                <h2>Cuentas por Cobrar & Por Pagar</h2>
                 <table>
                     <thead>
                         <tr>
                             <th>Concepto</th>
                             <th>Tipo</th>
-                            <th>Moneda</th>
                             <th>Monto Total</th>
                             <th>Estado</th>
                             <th>Acciones</th>
@@ -217,17 +217,13 @@
                     </tbody>
                 </table>
 
-                <form class="add-form" id="form-deuda" onsubmit="agregarDeuda(event)" style="grid-template-columns: 1fr 110px 80px 100px 90px 70px;">
-                    <input type="text" id="deuda-concepto" placeholder="Concepto de la deuda" required>
+                <form class="add-form" id="form-deuda" onsubmit="agregarDeuda(event)" style="grid-template-columns: 1fr 110px 110px 110px 70px;">
+                    <input type="text" id="deuda-concepto" placeholder="Concepto (ej. S/ 1697 ó $ 600)" required>
                     <select id="deuda-tipo">
                         <option value="Por Cobrar">Por Cobrar</option>
                         <option value="Por Pagar">Por Pagar</option>
                     </select>
-                    <select id="deuda-moneda">
-                        <option value="S/">S/</option>
-                        <option value="$">$ USD</option>
-                    </select>
-                    <input type="number" step="0.01" id="deuda-monto" placeholder="Monto" required>
+                    <input type="text" id="deuda-monto" placeholder="Monto (S/ o $)" required>
                     <input type="text" id="deuda-estado" placeholder="Estado" value="Pendiente">
                     <button type="submit" id="btn-deuda-submit">Añadir</button>
                 </form>
@@ -246,7 +242,8 @@
         const NOMBRES_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
         const SALDO_INICIAL_BASE = 719.65;
-        const FONDO_ALQUILER_BASE = 574.29; // Base ajustada para que sumando los ahorros (150 + 65.71 + 10) dé exactamente los S/ 790.00 con los que empezaste
+        const FONDO_ALQUILER_BASE = 574.29; 
+        const CAPITAL_JOYAS_BASE = 200.00;
         const FONDO_PADRE_BASE = 2426.40;
 
         const movimientosInicialesSeptiembre = [
@@ -261,10 +258,10 @@
         ];
 
         const deudasIniciales = [
-            { concepto: "Préstamo acumulado 1", tipo: "Por Cobrar", moneda: "S/", monto: 1697.00, estado: "Pendiente" },
-            { concepto: "Préstamo acumulado 2", tipo: "Por Cobrar", moneda: "S/", monto: 793.50, estado: "Pendiente" },
-            { concepto: "Préstamo en Divisas", tipo: "Por Cobrar", moneda: "$", monto: 600.00, estado: "Pendiente" },
-            { concepto: "Deuda personal", tipo: "Por Pagar", moneda: "S/", monto: 195.50, estado: "Previsto 2027" }
+            { concepto: "Préstamo acumulado 1", tipo: "Por Cobrar", monto: "S/ 1697.00", estado: "Pendiente" },
+            { concepto: "Préstamo acumulado 2", tipo: "Por Cobrar", monto: "S/ 793.50", estado: "Pendiente" },
+            { concepto: "Préstamo en Divisas", tipo: "Por Cobrar", monto: "$ 600.00", estado: "Pendiente" },
+            { concepto: "Deuda personal", tipo: "Por Pagar", monto: "S/ 195.50", estado: "Previsto 2027" }
         ];
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -335,6 +332,7 @@
         function calcularSaldos() {
             let saldoDisponible = SALDO_INICIAL_BASE;
             let fondoAlquiler = FONDO_ALQUILER_BASE;
+            let capitalJoyas = CAPITAL_JOYAS_BASE;
             let fondoPadre = FONDO_PADRE_BASE;
 
             movimientos.forEach(m => {
@@ -357,10 +355,15 @@
                 if (m.cat === 'De padre') {
                     fondoPadre -= montoNum; 
                 }
+
+                if (m.cat === 'Joyas') {
+                    capitalJoyas += montoNum;
+                }
             });
 
             document.getElementById('val-disponible').innerText = `S/ ${saldoDisponible.toFixed(2)}`;
             document.getElementById('val-alquiler').innerText = `S/ ${fondoAlquiler.toFixed(2)}`;
+            document.getElementById('val-joyas').innerText = `S/ ${capitalJoyas.toFixed(2)}`;
             document.getElementById('val-padre').innerText = `S/ ${fondoPadre.toFixed(2)}`;
         }
 
@@ -416,7 +419,7 @@
                 const descLower = (m.desc || '').toLowerCase();
                 const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
                 
-                const color = isIngreso ? '#2E6F40' : (esAhorroOwardadito || m.cat === 'De padre' ? '#D9641F' : '#C62828');
+                const color = isIngreso ? '#2E6F40' : (esAhorroOwardadito || m.cat === 'De padre' || m.cat === 'Joyas' ? '#D9641F' : '#C62828');
                 const signo = isIngreso ? '+' : '-';
 
                 const tr = document.createElement('tr');
@@ -510,12 +513,18 @@
             let totalPagarUSD = 0;
 
             deudas.forEach((d, index) => {
-                const montoNum = parseFloat(d.monto) || 0;
+                let montoStr = d.monto || "";
+                let montoNum = 0;
+                let esUSD = montoStr.includes('$');
+
+                let numMatch = montoStr.replace(/[^0-9.]/g, '');
+                montoNum = parseFloat(numMatch) || 0;
+
                 if (d.tipo === 'Por Cobrar') {
-                    if (d.moneda === '$') totalCobrarUSD += montoNum;
+                    if (esUSD) totalCobrarUSD += montoNum;
                     else totalCobrarSoles += montoNum;
                 } else {
-                    if (d.moneda === '$') totalPagarUSD += montoNum;
+                    if (esUSD) totalPagarUSD += montoNum;
                     else totalPagarSoles += montoNum;
                 }
 
@@ -525,8 +534,7 @@
                 tr.innerHTML = `
                     <td>${d.concepto}</td>
                     <td style="color:${colorTipo}; font-weight:bold;">${d.tipo}</td>
-                    <td>${d.moneda}</td>
-                    <td style="font-weight:bold;">${d.moneda} ${montoNum.toFixed(2)}</td>
+                    <td style="font-weight:bold;">${d.monto}</td>
                     <td>${d.estado}</td>
                     <td>
                         <button class="btn-edit" onclick="editarDeuda(${index})">Editar</button>
@@ -546,16 +554,15 @@
             e.preventDefault();
             const concepto = document.getElementById('deuda-concepto').value;
             const tipo = document.getElementById('deuda-tipo').value;
-            const moneda = document.getElementById('deuda-moneda').value;
-            const monto = parseFloat(document.getElementById('deuda-monto').value);
+            const monto = document.getElementById('deuda-monto').value;
             const estado = document.getElementById('deuda-estado').value || 'Pendiente';
 
             if (filaDeudaEditandoIndex !== null) {
-                deudas[filaDeudaEditandoIndex] = { concepto, tipo, moneda, monto, estado };
+                deudas[filaDeudaEditandoIndex] = { concepto, tipo, monto, estado };
                 filaDeudaEditandoIndex = null;
                 document.getElementById('btn-deuda-submit').innerText = "Añadir";
             } else {
-                deudas.push({ concepto, tipo, moneda, monto, estado });
+                deudas.push({ concepto, tipo, monto, estado });
             }
 
             guardarDeudasStorage();
@@ -570,7 +577,6 @@
 
             document.getElementById('deuda-concepto').value = d.concepto;
             document.getElementById('deuda-tipo').value = d.tipo;
-            document.getElementById('deuda-moneda').value = d.moneda;
             document.getElementById('deuda-monto').value = d.monto;
             document.getElementById('deuda-estado').value = d.estado;
 
