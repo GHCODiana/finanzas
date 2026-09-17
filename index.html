@@ -129,10 +129,10 @@
 
             <div class="card-box">
                 <h2>✓ Pagos Obligatorios</h2>
-                <div class="checklist-item"><input type="checkbox" checked> Alquiler 1er día (S/ 720)</div>
-                <div class="checklist-item"><input type="checkbox" checked> Ahorro Q1 (S/ 150)</div>
-                <div class="checklist-item"><input type="checkbox"> Ahorro Q2 (S/ 150)</div>
-                <div class="checklist-item"><input type="checkbox"> Celular 24/Set (S/ 26)</div>
+                <div class="checklist-item"><input type="checkbox" id="chk-1" onchange="guardarCheckboxes()"> Alquiler 1er día (S/ 720)</div>
+                <div class="checklist-item"><input type="checkbox" id="chk-2" onchange="guardarCheckboxes()"> Ahorro Q1 (S/ 150)</div>
+                <div class="checklist-item"><input type="checkbox" id="chk-3" onchange="guardarCheckboxes()"> Ahorro Q2 (S/ 150)</div>
+                <div class="checklist-item"><input type="checkbox" id="chk-4" onchange="guardarCheckboxes()"> Celular 24/Set (S/ 26)</div>
             </div>
         </aside>
 
@@ -149,31 +149,7 @@
                             <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>01/09</td><td>Alquiler</td><td>Pago Dpto. Setiembre</td>
-                            <td style="color:#C62828; font-weight:bold;">- S/ 720.00</td>
-                            <td>
-                                <button class="btn-edit" onclick="editarFila(this)">✏️ Edit</button>
-                                <button class="btn-del" onclick="eliminarFila(this)">✕</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>01/09</td><td>Ahorro</td><td>Wardadito Q1</td>
-                            <td style="color:#D9641F; font-weight:bold;">- S/ 150.00</td>
-                            <td>
-                                <button class="btn-edit" onclick="editarFila(this)">✏️ Edit</button>
-                                <button class="btn-del" onclick="eliminarFila(this)">✕</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>01/09</td><td>Ingreso</td><td>Sueldo Q1</td>
-                            <td style="color:#2E6F40; font-weight:bold;">+ S/ 310.00</td>
-                            <td>
-                                <button class="btn-edit" onclick="editarFila(this)">✏️ Edit</button>
-                                <button class="btn-del" onclick="eliminarFila(this)">✕</button>
-                            </td>
-                        </tr>
+                    <tbody id="tbody-movimientos">
                     </tbody>
                 </table>
 
@@ -183,6 +159,8 @@
                         <option>Alimentación</option>
                         <option>Transporte</option>
                         <option>Celular</option>
+                        <option>Alquiler</option>
+                        <option>Ahorro</option>
                         <option>Ingreso</option>
                         <option>Otro</option>
                     </select>
@@ -215,23 +193,68 @@
     </div>
 
     <script>
-        let filaEditando = null;
+        let filaEditandoIndex = null;
+        let movimientos = [];
+
+        // Datos por defecto la primera vez que se entra a la app
+        const movimientosIniciales = [
+            { fecha: "01/09", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00, tipo: "egreso" },
+            { fecha: "01/09", cat: "Ahorro", desc: "Wardadito Q1", monto: 150.00, tipo: "egreso" },
+            { fecha: "15/09", cat: "Ingreso", desc: "Sueldo Q1", monto: 310.00, tipo: "ingreso" }
+        ];
 
         document.addEventListener("DOMContentLoaded", () => {
+            // 1. Calendario con fecha real
             const hoy = new Date();
             const diaActual = hoy.getDate();
-            
             const celdas = document.querySelectorAll('.cal-day[data-day]');
             celdas.forEach(celda => {
                 if (parseInt(celda.getAttribute('data-day')) === diaActual) {
                     celda.classList.add('cal-today');
                 }
             });
-            
+
             const mesActual = (hoy.getMonth() + 1).toString().padStart(2, '0');
             const diaFormat = diaActual.toString().padStart(2, '0');
             document.getElementById('inp-fecha').value = `${diaFormat}/${mesActual}`;
+
+            // 2. Cargar movimientos guardados
+            const movsGuardados = localStorage.getItem('movimientos_finanzas');
+            if (movsGuardados) {
+                movimientos = JSON.parse(movsGuardados);
+            } else {
+                movimientos = [...movimientosIniciales];
+                guardarEnStorage();
+            }
+            renderizarTabla();
+
+            // 3. Cargar checkboxes guardados
+            cargarCheckboxes();
         });
+
+        function renderizarTabla() {
+            const tbody = document.getElementById('tbody-movimientos');
+            tbody.innerHTML = '';
+
+            movimientos.forEach((m, index) => {
+                const isIngreso = m.cat === 'Ingreso';
+                const color = isIngreso ? '#2E6F40' : (m.cat === 'Ahorro' ? '#D9641F' : '#C62828');
+                const signo = isIngreso ? '+' : '-';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${m.fecha}</td>
+                    <td>${m.cat}</td>
+                    <td>${m.desc}</td>
+                    <td style="color:${color}; font-weight:bold;">${signo} S/ ${parseFloat(m.monto).toFixed(2)}</td>
+                    <td>
+                        <button class="btn-edit" onclick="editarMovimiento(${index})">✏️ Edit</button>
+                        <button class="btn-del" onclick="eliminarMovimiento(${index})">✕</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
 
         function agregarMovimiento(e) {
             e.preventDefault();
@@ -240,55 +263,69 @@
             const desc = document.getElementById('inp-desc').value;
             const monto = parseFloat(document.getElementById('inp-monto').value);
 
-            const isIngreso = cat === 'Ingreso';
-            const color = isIngreso ? '#2E6F40' : '#C62828';
-            const signo = isIngreso ? '+' : '-';
-
-            if (filaEditando) {
-                filaEditando.cells[0].innerText = fecha;
-                filaEditando.cells[1].innerText = cat;
-                filaEditando.cells[2].innerText = desc;
-                filaEditando.cells[3].innerHTML = `<span style="color:${color}; font-weight:bold;">${signo} S/ ${monto.toFixed(2)}</span>`;
-                
-                filaEditando = null;
+            if (filaEditandoIndex !== null) {
+                movimientos[filaEditandoIndex] = { fecha, cat, desc, monto };
+                filaEditandoIndex = null;
                 document.getElementById('btn-submit').innerText = "Guardar";
             } else {
-                const tabla = document.getElementById('tabla-movimientos').getElementsByTagName('tbody')[0];
-                const nuevaFila = tabla.insertRow();
-                nuevaFila.innerHTML = `
-                    <td>${fecha}</td>
-                    <td>${cat}</td>
-                    <td>${desc}</td>
-                    <td style="color:${color}; font-weight:bold;">${signo} S/ ${monto.toFixed(2)}</td>
-                    <td>
-                        <button class="btn-edit" onclick="editarFila(this)">✏️ Edit</button>
-                        <button class="btn-del" onclick="eliminarFila(this)">✕</button>
-                    </td>
-                `;
+                movimientos.push({ fecha, cat, desc, monto });
             }
 
+            guardarEnStorage();
+            renderizarTabla();
             document.getElementById('form-movimiento').reset();
+
+            // Restablecer la fecha de hoy en el formulario
+            const hoy = new Date();
+            const mesActual = (hoy.getMonth() + 1).toString().padStart(2, '0');
+            const diaFormat = hoy.getDate().toString().padStart(2, '0');
+            document.getElementById('inp-fecha').value = `${diaFormat}/${mesActual}`;
         }
 
-        function editarFila(btn) {
-            filaEditando = btn.parentNode.parentNode;
-            
-            const fecha = filaEditando.cells[0].innerText;
-            const cat = filaEditando.cells[1].innerText;
-            const desc = filaEditando.cells[2].innerText;
-            const montoTexto = filaEditando.cells[3].innerText.replace(/[^0-9.]/g, '');
+        function editarMovimiento(index) {
+            filaEditandoIndex = index;
+            const m = movimientos[index];
 
-            document.getElementById('inp-fecha').value = fecha;
-            document.getElementById('inp-cat').value = cat;
-            document.getElementById('inp-desc').value = desc;
-            document.getElementById('inp-monto').value = parseFloat(montoTexto);
+            document.getElementById('inp-fecha').value = m.fecha;
+            document.getElementById('inp-cat').value = m.cat;
+            document.getElementById('inp-desc').value = m.desc;
+            document.getElementById('inp-monto').value = m.monto;
 
             document.getElementById('btn-submit').innerText = "Actualizar";
         }
 
-        function eliminarFila(btn) {
-            const fila = btn.parentNode.parentNode;
-            fila.parentNode.removeChild(fila);
+        function eliminarMovimiento(index) {
+            movimientos.splice(index, 1);
+            guardarEnStorage();
+            renderizarTabla();
+        }
+
+        function guardarEnStorage() {
+            localStorage.setItem('movimientos_finanzas', JSON.stringify(movimientos));
+        }
+
+        function guardarCheckboxes() {
+            const checks = {
+                chk1: document.getElementById('chk-1').checked,
+                chk2: document.getElementById('chk-2').checked,
+                chk3: document.getElementById('chk-3').checked,
+                chk4: document.getElementById('chk-4').checked
+            };
+            localStorage.setItem('checkboxes_finanzas', JSON.stringify(checks));
+        }
+
+        function cargarCheckboxes() {
+            const checksGuardados = localStorage.getItem('checkboxes_finanzas');
+            if (checksGuardados) {
+                const checks = JSON.parse(checksGuardados);
+                document.getElementById('chk-1').checked = checks.chk1 ?? true;
+                document.getElementById('chk-2').checked = checks.chk2 ?? true;
+                document.getElementById('chk-3').checked = checks.chk3 ?? false;
+                document.getElementById('chk-4').checked = checks.chk4 ?? false;
+            } else {
+                document.getElementById('chk-1').checked = true;
+                document.getElementById('chk-2').checked = true;
+            }
         }
     </script>
 </body>
