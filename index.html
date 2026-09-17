@@ -202,7 +202,10 @@
             </div>
 
             <div class="card-box" style="background: #FAFAFA;">
-                <h2>Cuentas por Cobrar & Por Pagar</h2>
+                <h2>
+                    Cuentas por Cobrar & Por Pagar
+                    <button class="btn-reset" onclick="restaurarDeudas()">Restaurar Deudas</button>
+                </h2>
                 <table>
                     <thead>
                         <tr>
@@ -489,11 +492,24 @@
         function cargarDeudas() {
             const deudasGuardadas = localStorage.getItem('deudas_personales');
             if (deudasGuardadas) {
-                deudas = JSON.parse(deudasGuardadas);
-            } else {
+                try {
+                    deudas = JSON.parse(deudasGuardadas);
+                } catch(e) {
+                    deudas = [];
+                }
+            }
+            
+            // Si está vacío o nulo, cargamos las deudas iniciales obligatoriamente
+            if (!deudas || deudas.length === 0) {
                 deudas = [...deudasIniciales];
                 guardarDeudasStorage();
             }
+            renderizarDeudas();
+        }
+
+        function restaurarDeudas() {
+            deudas = [...deudasIniciales];
+            guardarDeudasStorage();
             renderizarDeudas();
         }
 
