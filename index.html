@@ -340,14 +340,12 @@
                 const descLower = (m.desc || '').toLowerCase();
                 const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
 
-                // Saldo disponible (ingresos suman, gastos restan)
                 if (m.cat === 'Ingreso') {
                     saldoDisponible += montoNum;
                 } else {
                     saldoDisponible -= montoNum;
                 }
 
-                // Fondo alquiler: aumenta con los ahorros/wardaditos
                 if (esAhorroOwardadito) {
                     fondoAlquiler += montoNum;
                 }
