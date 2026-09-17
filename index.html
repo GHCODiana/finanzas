@@ -55,7 +55,7 @@
         @media (min-width: 768px) { .dashboard-grid { grid-template-columns: 280px 1fr; } }
 
         .card-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-        .card-box h2 { font-size: 0.95rem; margin-bottom: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .card-box h2 { font-size: 0.95rem; margin-bottom: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; justify-content: space-between; }
 
         .checklist-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 0.85rem; }
         .checklist-item input[type="checkbox"] { accent-color: var(--accent-orange); width: 16px; height: 16px; }
@@ -81,6 +81,8 @@
         .cal-celular { background: #FFF6D6; border: 1px solid #FDCB7B; }
 
         .chart-container { position: relative; width: 100%; max-width: 250px; margin: 0 auto; height: 250px; }
+        .btn-reset { background: #f0f0f0; border: 1px solid #ddd; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; color: #555; }
+        .btn-reset:hover { background: #e0e0e0; }
     </style>
 </head>
 <body>
@@ -162,7 +164,10 @@
 
         <main>
             <div class="card-box">
-                <h2>Registro Diario de Movimientos</h2>
+                <h2>
+                    Registro Diario de Movimientos
+                    <button class="btn-reset" onclick="reiniciarDatosMes()">Restaurar Mes</button>
+                </h2>
                 <table id="tabla-movimientos">
                     <thead>
                         <tr>
@@ -195,7 +200,6 @@
                 </form>
             </div>
 
-            <!-- SECCIÓN NUEVA: GESTIÓN DE DEUDAS (Cobrar / Pagar) -->
             <div class="card-box" style="background: #FAFAFA;">
                 <h2>Cuentas por Cobrar & Por Pagar (Personalizadas)</h2>
                 <table>
@@ -242,8 +246,8 @@
         const NOMBRES_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
         const SALDO_INICIAL_BASE = 719.65;
-        // Ajustado para que con tu wardadito de hoy llegue exacto a los S/ 790.00 que tienes ahora mismo
-        const FONDO_ALQUILER_BASE = 724.29; 
+        // Base ajustada para que sumando los ahorros y restando el pago de alquiler dé exactamente los S/ 790.00 actuales
+        const FONDO_ALQUILER_BASE = 794.29; 
         const FONDO_PADRE_BASE = 2426.40;
 
         const movimientosInicialesSeptiembre = [
@@ -313,13 +317,18 @@
             if (movsGuardados) {
                 movimientos = JSON.parse(movsGuardados);
             } else {
-                if (fechaNavegacion.getMonth() === 8 && fechaNavegacion.getFullYear() === 2026) {
-                    movimientos = [...movimientosInicialesSeptiembre];
-                } else {
-                    movimientos = [];
-                }
-                guardarEnStorage();
+                reiniciarDatosMes();
             }
+            renderizarTabla();
+        }
+
+        function reiniciarDatosMes() {
+            if (fechaNavegacion.getMonth() === 8 && fechaNavegacion.getFullYear() === 2026) {
+                movimientos = [...movimientosInicialesSeptiembre];
+            } else {
+                movimientos = [];
+            }
+            guardarEnStorage();
             renderizarTabla();
         }
 
@@ -472,7 +481,6 @@
             localStorage.setItem(clave, JSON.stringify(movimientos));
         }
 
-        // --- GESTIÓN DE DEUDAS (COBRAR Y PAGAR) ---
         function cargarDeudas() {
             const deudasGuardadas = localStorage.getItem('deudas_personales');
             if (deudasGuardadas) {
@@ -524,16 +532,10 @@
                 tbody.appendChild(tr);
             });
 
-            // Actualizar KPIs de deudas
-            let textoCobrar = `S/ ${totalCobrarSoles.toFixed(2)}`;
-            let subtxtCobrar = totalCobrarUSD > 0 ? `+ $${totalCobrarUSD.toFixed(2)} USD` : 'Soles';
-            document.getElementById('val-total-cobrar').innerText = textoCobrar;
-            document.getElementById('val-total-cobrar-usd').innerText = subtxtCobrar;
-
-            let textoPagar = `S/ ${totalPagarSoles.toFixed(2)}`;
-            let subtxtPagar = totalPagarUSD > 0 ? `+ $${totalPagarUSD.toFixed(2)} USD` : 'Soles';
-            document.getElementById('val-total-pagar').innerText = textoPagar;
-            document.getElementById('val-total-pagar-usd').innerText = subtxtPagar;
+            document.getElementById('val-total-cobrar').innerText = `S/ ${totalCobrarSoles.toFixed(2)}`;
+            document.getElementById('val-total-cobrar-usd').innerText = totalCobrarUSD > 0 ? `+ $${totalCobrarUSD.toFixed(2)} USD` : 'Soles';
+            document.getElementById('val-total-pagar').innerText = `S/ ${totalPagarSoles.toFixed(2)}`;
+            document.getElementById('val-total-pagar-usd').innerText = totalPagarUSD > 0 ? `+ $${totalPagarUSD.toFixed(2)} USD` : 'Soles';
         }
 
         function agregarDeuda(e) {
