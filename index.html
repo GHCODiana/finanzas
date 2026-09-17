@@ -195,12 +195,15 @@
     <script>
         let filaEditandoIndex = null;
         let movimientos = [];
+        
+        // Saldo base inicial antes de aplicar movimientos del mes
+        const SALDO_INICIAL_BASE = 185.65;
 
-        // Datos por defecto la primera vez que se entra a la app
+        // Datos por defecto si no existen en el almacenamiento
         const movimientosIniciales = [
-            { fecha: "01/09", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00, tipo: "egreso" },
-            { fecha: "01/09", cat: "Ahorro", desc: "Wardadito Q1", monto: 150.00, tipo: "egreso" },
-            { fecha: "15/09", cat: "Ingreso", desc: "Sueldo Q1", monto: 310.00, tipo: "ingreso" }
+            { fecha: "01/09", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00 },
+            { fecha: "01/09", cat: "Ahorro", desc: "Wardadito Q1", monto: 150.00 },
+            { fecha: "15/09", cat: "Ingreso", desc: "Sueldo Q1", monto: 310.00 }
         ];
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -232,6 +235,21 @@
             cargarCheckboxes();
         });
 
+        function calcularSaldoDisponible() {
+            let saldo = SALDO_INICIAL_BASE;
+            movimientos.forEach(m => {
+                const montoNum = parseFloat(m.monto) || 0;
+                if (m.cat === 'Ingreso') {
+                    saldo += montoNum;
+                } else if (m.cat === 'Alquiler') {
+                    // El pago de alquiler se maneja con su propio fondo
+                } else {
+                    saldo -= montoNum;
+                }
+            });
+            document.getElementById('val-disponible').innerText = `S/ ${saldo.toFixed(2)}`;
+        }
+
         function renderizarTabla() {
             const tbody = document.getElementById('tbody-movimientos');
             tbody.innerHTML = '';
@@ -254,6 +272,8 @@
                 `;
                 tbody.appendChild(tr);
             });
+
+            calcularSaldoDisponible();
         }
 
         function agregarMovimiento(e) {
@@ -275,7 +295,6 @@
             renderizarTabla();
             document.getElementById('form-movimiento').reset();
 
-            // Restablecer la fecha de hoy en el formulario
             const hoy = new Date();
             const mesActual = (hoy.getMonth() + 1).toString().padStart(2, '0');
             const diaFormat = hoy.getDate().toString().padStart(2, '0');
