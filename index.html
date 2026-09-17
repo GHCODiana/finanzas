@@ -20,6 +20,7 @@
             --bg-disponible: #EBF3ED;
             --bg-alquiler: #FFF8EB;
             --bg-joyas: #F4F0F9;
+            --bg-padre: #E0F7FA;
             --bg-cobrar: #E8F5E9;
             --bg-pagar: #FFEBEE;
         }
@@ -38,7 +39,7 @@
         .btn-mes { background: white; border: 1px solid var(--border-color); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; font-weight: bold; color: var(--accent-orange); display: flex; align-items: center; justify-content: center; }
         .btn-mes:hover { background: var(--accent-orange); color: white; }
 
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .kpi-card { border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); }
         .kpi-card h3 { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px; }
         .kpi-card .amount { font-size: 1.2rem; font-weight: 700; }
@@ -46,6 +47,7 @@
         .kpi-disponible { background: var(--bg-disponible); border-color: #B7DCD6; color: var(--accent-green); }
         .kpi-alquiler { background: var(--bg-alquiler); border-color: #FDCB7B; color: var(--accent-orange); }
         .kpi-joyas { background: var(--bg-joyas); border-color: #F2C9E4; color: var(--accent-purple); }
+        .kpi-padre { background: var(--bg-padre); border-color: #B2EBF2; color: #006064; }
         .kpi-cobrar { background: var(--bg-cobrar); border-color: #A5D6A7; color: #1B5E20; }
         .kpi-pagar { background: var(--bg-pagar); border-color: #EF9A9A; color: #B71C1C; }
 
@@ -99,13 +101,18 @@
         </div>
         <div class="kpi-card kpi-alquiler">
             <h3>Fondo Alquiler</h3>
-            <div class="amount">S/ 724.29</div>
+            <div class="amount" id="val-alquiler">S/ 724.29</div>
             <small style="font-size: 0.7rem;">Meta: S/ 720.00 ✓</small>
         </div>
         <div class="kpi-card kpi-joyas">
             <h3>Capital Joyas</h3>
             <div class="amount">S/ 200.00</div>
             <small style="font-size: 0.7rem;">Fondo Protegido</small>
+        </div>
+        <div class="kpi-card kpi-padre">
+            <h3>Fondo Padre</h3>
+            <div class="amount" id="val-padre">S/ 2,426.40</div>
+            <small style="font-size: 0.7rem;">Dinámico</small>
         </div>
         <div class="kpi-card kpi-cobrar">
             <h3>Por Cobrar (MM)</h3>
@@ -122,7 +129,7 @@
     <div class="dashboard-grid">
         <aside>
             <div class="card-box">
-                <h2> <span id="cal-titulo">Septiembre 2026</span></h2>
+                <h2 id="cal-titulo">Septiembre 2026</h2>
                 <div class="calendar-grid">
                     <div class="cal-day-head">L</div><div class="cal-day-head">M</div><div class="cal-day-head">M</div>
                     <div class="cal-day-head">J</div><div class="cal-day-head">V</div><div class="cal-day-head">S</div><div class="cal-day-head">D</div>
@@ -138,7 +145,7 @@
             </div>
 
             <div class="card-box">
-                <h2>✓ Pagos Obligatorios</h2>
+                <h2>Pagos Obligatorios</h2>
                 <div class="checklist-item"><input type="checkbox" id="chk-1" onchange="guardarCheckboxes()"> Alquiler 1er día (S/ 720)</div>
                 <div class="checklist-item"><input type="checkbox" id="chk-2" onchange="guardarCheckboxes()"> Ahorro Q1 (S/ 150)</div>
                 <div class="checklist-item"><input type="checkbox" id="chk-3" onchange="guardarCheckboxes()"> Ahorro Q2 (S/ 150)</div>
@@ -146,7 +153,7 @@
             </div>
 
             <div class="card-box">
-                <h2> Distribución de Egresos</h2>
+                <h2>Distribución de Egresos</h2>
                 <div class="chart-container">
                     <canvas id="graficoGastos"></canvas>
                 </div>
@@ -155,7 +162,7 @@
 
         <main>
             <div class="card-box">
-                <h2> Registro Diario de Movimientos</h2>
+                <h2>Registro Diario de Movimientos</h2>
                 <table id="tabla-movimientos">
                     <thead>
                         <tr>
@@ -178,6 +185,7 @@
                         <option>Celular</option>
                         <option>Alquiler</option>
                         <option>Ahorro</option>
+                        <option>De padre</option>
                         <option>Ingreso</option>
                         <option>Otro</option>
                     </select>
@@ -188,7 +196,7 @@
             </div>
 
             <div class="card-box" style="background: #FAFAFA;">
-                <h2> Cuentas por Cobrar & Por Pagar (MM)</h2>
+                <h2>Cuentas por Cobrar & Por Pagar (MM)</h2>
                 <table>
                     <thead>
                         <tr>
@@ -214,11 +222,12 @@
         let movimientos = [];
         let chartInstance = null;
 
-        // Fecha actual de navegación (Año y Mes)
-        let fechaNavegacion = new Date(2026, 8, 1); // Septiembre 2026 (Mes 8 en JS es Septiembre)
+        let fechaNavegacion = new Date(2026, 8, 1); 
         const NOMBRES_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
         const SALDO_INICIAL_BASE = 719.65;
+        const FONDO_ALQUILER_BASE = 724.29;
+        const FONDO_PADRE_BASE = 2426.40;
 
         const movimientosInicialesSeptiembre = [
             { fecha: "01/09", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00 },
@@ -252,7 +261,6 @@
             document.getElementById('header-mes').innerText = textoMesAnio;
             document.getElementById('cal-titulo').innerText = textoMesAnio;
 
-            // Marcar día actual en calendario si coincide con el mes/año actual
             const hoy = new Date();
             const celdas = document.querySelectorAll('.cal-day[data-day]');
             celdas.forEach(celda => {
@@ -264,7 +272,6 @@
                 }
             });
 
-            // Input fecha por defecto
             const mesFormat = (mesIdx + 1).toString().padStart(2, '0');
             const diaFormat = (fechaNavegacion.getMonth() === hoy.getMonth() && fechaNavegacion.getFullYear() === hoy.getFullYear()) ? hoy.getDate().toString().padStart(2, '0') : '01';
             document.getElementById('inp-fecha').value = `${diaFormat}/${mesFormat}`;
@@ -277,7 +284,6 @@
             if (movsGuardados) {
                 movimientos = JSON.parse(movsGuardados);
             } else {
-                // Si es septiembre 2026 cargamos los de prueba, otros meses arrancan vacíos
                 if (fechaNavegacion.getMonth() === 8 && fechaNavegacion.getFullYear() === 2026) {
                     movimientos = [...movimientosInicialesSeptiembre];
                 } else {
@@ -288,19 +294,41 @@
             renderizarTabla();
         }
 
-        function calcularSaldoDisponible() {
-            let saldo = SALDO_INICIAL_BASE;
+        function calcularSaldos() {
+            let saldoDisponible = SALDO_INICIAL_BASE;
+            let fondoAlquiler = FONDO_ALQUILER_BASE;
+            let fondoPadre = FONDO_PADRE_BASE;
 
             movimientos.forEach(m => {
                 const montoNum = parseFloat(m.monto) || 0;
+                const esAhorroOwardadito = m.cat === 'Ahorro' || (m.desc && m.desc.toLowerCase().includes('wardadito'));
+
+                // 1. Cálculo Saldo Disponible general
                 if (m.cat === 'Ingreso') {
-                    saldo += montoNum;
+                    saldoDisponible += montoNum;
                 } else {
-                    saldo -= montoNum;
+                    saldoDisponible -= montoNum;
+                }
+
+                // 2. Cálculo Fondo Alquiler (Se suma si es Ahorro o incluye 'wardadito')
+                if (esAhorroOwardadito) {
+                    fondoAlquiler += montoNum;
+                }
+
+                // 3. Cálculo Fondo Padre dinámico
+                if (m.cat === 'De padre') {
+                    if (m.cat === 'Ingreso' || m.desc.toLowerCase().includes('ingreso')) { // Opcional por si es ingreso de padre
+                        fondoPadre += montoNum;
+                    } else {
+                        // Por defecto cualquier registro en "De padre" resta/suma según naturaleza (asumiremos gasto si no es ingreso explícito)
+                        fondoPadre -= montoNum; 
+                    }
                 }
             });
 
-            document.getElementById('val-disponible').innerText = `S/ ${saldo.toFixed(2)}`;
+            document.getElementById('val-disponible').innerText = `S/ ${saldoDisponible.toFixed(2)}`;
+            document.getElementById('val-alquiler').innerText = `S/ ${fondoAlquiler.toFixed(2)}`;
+            document.getElementById('val-padre').innerText = `S/ ${fondoPadre.toFixed(2)}`;
         }
 
         function actualizarGrafico() {
@@ -329,7 +357,7 @@
                     labels: labels,
                     datasets: [{
                         data: data,
-                        backgroundColor: ['#F69F95', '#FFE2A6', '#DBE098', '#DSEDF8', '#DSE2D3', '#BSBEF5', '#C9A98D'],
+                        backgroundColor: ['#F69F95', '#FFE2A6', '#DBE098', '#A2D2DF', '#C8B6FF', '#B5E2FA', '#80DEEA', '#C9A98D'],
                         borderWidth: 1
                     }]
                 },
@@ -352,7 +380,7 @@
 
             movimientos.forEach((m, index) => {
                 const isIngreso = m.cat === 'Ingreso';
-                const color = isIngreso ? '#2E6F40' : (m.cat === 'Ahorro' ? '#D9641F' : '#C62828');
+                const color = isIngreso ? '#2E6F40' : (m.cat === 'Ahorro' || m.cat === 'De padre' ? '#D9641F' : '#C62828');
                 const signo = isIngreso ? '+' : '-';
 
                 const tr = document.createElement('tr');
@@ -362,14 +390,14 @@
                     <td>${m.desc}</td>
                     <td style="color:${color}; font-weight:bold;">${signo} S/ ${parseFloat(m.monto).toFixed(2)}</td>
                     <td>
-                        <button class="btn-edit" onclick="editarMovimiento(${index})"> Edit</button>
+                        <button class="btn-edit" onclick="editarMovimiento(${index})">Editar</button>
                         <button class="btn-del" onclick="eliminarMovimiento(${index})">✕</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            calcularSaldoDisponible();
+            calcularSaldos();
             actualizarGrafico();
         }
 
