@@ -22,68 +22,20 @@
             --bg-pagar: #FFEBEE;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-            padding: 16px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-primary); padding: 16px; max-width: 1200px; margin: 0 auto; }
 
         header {
-            background-color: #FFF0ED;
-            border: 1px solid #F2C9E4;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
+            background-color: #FFF0ED; border: 1px solid #F2C9E4; border-radius: 12px; padding: 16px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
         }
+        header h1 { color: var(--accent-orange); font-size: 1.2rem; font-weight: 700; }
+        header p { color: var(--text-secondary); font-size: 0.9rem; }
 
-        header h1 {
-            color: var(--accent-orange);
-            font-size: 1.2rem;
-            font-weight: 700;
-        }
-
-        header p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .kpi-card {
-            border-radius: 12px;
-            padding: 14px;
-            border: 1px solid var(--border-color);
-        }
-
-        .kpi-card h3 {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-        }
-
-        .kpi-card .amount {
-            font-size: 1.2rem;
-            font-weight: 700;
-        }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .kpi-card { border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); }
+        .kpi-card h3 { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px; }
+        .kpi-card .amount { font-size: 1.2rem; font-weight: 700; }
 
         .kpi-disponible { background: var(--bg-disponible); border-color: #B7DCD6; color: var(--accent-green); }
         .kpi-alquiler { background: var(--bg-alquiler); border-color: #FDCB7B; color: var(--accent-orange); }
@@ -91,99 +43,27 @@
         .kpi-cobrar { background: var(--bg-cobrar); border-color: #A5D6A7; color: #1B5E20; }
         .kpi-pagar { background: var(--bg-pagar); border-color: #EF9A9A; color: #B71C1C; }
 
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
-        }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 768px) { .dashboard-grid { grid-template-columns: 280px 1fr; } }
 
-        @media (min-width: 768px) {
-            .dashboard-grid {
-                grid-template-columns: 280px 1fr;
-            }
-        }
+        .card-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        .card-box h2 { font-size: 0.95rem; margin-bottom: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 
-        .card-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
+        .checklist-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 0.85rem; }
+        .checklist-item input[type="checkbox"] { accent-color: var(--accent-orange); width: 16px; height: 16px; }
 
-        .card-box h2 {
-            font-size: 0.95rem;
-            margin-bottom: 12px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th { background: #F8F6F0; text-align: left; padding: 8px; color: var(--text-secondary); font-weight: 600; }
+        td { padding: 8px; border-top: 1px solid #F0ECE1; }
 
-        .checklist-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            font-size: 0.85rem;
-        }
+        .btn-del { background: #FFEBEE; color: #C62828; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-del:hover { background: #FFCDD2; }
 
-        .checklist-item input[type="checkbox"] {
-            accent-color: var(--accent-orange);
-            width: 16px;
-            height: 16px;
-        }
+        .add-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 12px; }
+        .add-form input, .add-form select, .add-form button { padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.8rem; }
+        .add-form button { background: var(--accent-orange); color: white; font-weight: 600; border: none; cursor: pointer; }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.82rem;
-        }
-
-        th {
-            background: #F8F6F0;
-            text-align: left;
-            padding: 8px;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        td {
-            padding: 8px;
-            border-top: 1px solid #F0ECE1;
-        }
-
-        .add-form {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .add-form input, .add-form select, .add-form button {
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 0.8rem;
-        }
-
-        .add-form button {
-            background: var(--accent-orange);
-            color: white;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-        }
-
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            text-align: center;
-            font-size: 0.75rem;
-            margin-top: 8px;
-        }
-
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.75rem; margin-top: 8px; }
         .cal-day-head { font-weight: 700; color: #888; padding: 4px 0; }
         .cal-day { padding: 6px 0; border-radius: 4px; }
         .cal-today { background: var(--accent-orange); color: white; font-weight: 700; }
@@ -264,12 +144,25 @@
                             <th>Categoría</th>
                             <th>Descripción</th>
                             <th>Monto</th>
+                            <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>01/09</td><td>Alquiler</td><td>Pago Dpto. Setiembre</td><td style="color:#C62828; font-weight:bold;">- S/ 720.00</td></tr>
-                        <tr><td>01/09</td><td>Ahorro</td><td>Wardadito Q1</td><td style="color:#D9641F; font-weight:bold;">- S/ 150.00</td></tr>
-                        <tr><td>01/09</td><td>Ingreso</td><td>Sueldo Q1</td><td style="color:#2E6F40; font-weight:bold;">+ S/ 310.00</td></tr>
+                        <tr>
+                            <td>01/09</td><td>Alquiler</td><td>Pago Dpto. Setiembre</td>
+                            <td style="color:#C62828; font-weight:bold;">- S/ 720.00</td>
+                            <td><button class="btn-del" onclick="eliminarFila(this)">✕</button></td>
+                        </tr>
+                        <tr>
+                            <td>01/09</td><td>Ahorro</td><td>Wardadito Q1</td>
+                            <td style="color:#D9641F; font-weight:bold;">- S/ 150.00</td>
+                            <td><button class="btn-del" onclick="eliminarFila(this)">✕</button></td>
+                        </tr>
+                        <tr>
+                            <td>01/09</td><td>Ingreso</td><td>Sueldo Q1</td>
+                            <td style="color:#2E6F40; font-weight:bold;">+ S/ 310.00</td>
+                            <td><button class="btn-del" onclick="eliminarFila(this)">✕</button></td>
+                        </tr>
                     </tbody>
                 </table>
 
@@ -330,9 +223,15 @@
                 <td>${cat}</td>
                 <td>${desc}</td>
                 <td style="color:${color}; font-weight:bold;">${signo} S/ ${monto.toFixed(2)}</td>
+                <td><button class="btn-del" onclick="eliminarFila(this)">✕</button></td>
             `;
 
             document.getElementById('form-movimiento').reset();
+        }
+
+        function eliminarFila(btn) {
+            const fila = btn.parentNode.parentNode;
+            fila.parentNode.removeChild(fila);
         }
     </script>
 </body>
