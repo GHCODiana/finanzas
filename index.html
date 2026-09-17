@@ -246,8 +246,7 @@
         const NOMBRES_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
         const SALDO_INICIAL_BASE = 719.65;
-        // Base ajustada para que sumando los ahorros y restando el pago de alquiler dé exactamente los S/ 790.00 actuales
-        const FONDO_ALQUILER_BASE = 794.29; 
+        const FONDO_ALQUILER_FIJO = 790.00; // Valor fijo estricto solicitado
         const FONDO_PADRE_BASE = 2426.40;
 
         const movimientosInicialesSeptiembre = [
@@ -334,23 +333,15 @@
 
         function calcularSaldos() {
             let saldoDisponible = SALDO_INICIAL_BASE;
-            let fondoAlquiler = FONDO_ALQUILER_BASE;
             let fondoPadre = FONDO_PADRE_BASE;
 
             movimientos.forEach(m => {
                 const montoNum = parseFloat(m.monto) || 0;
-                const esAhorroOwardadito = m.cat === 'Ahorro' || (m.desc && m.desc.toLowerCase().includes('wardadito'));
 
                 if (m.cat === 'Ingreso') {
                     saldoDisponible += montoNum;
                 } else {
                     saldoDisponible -= montoNum;
-                }
-
-                if (esAhorroOwardadito) {
-                    fondoAlquiler += montoNum;
-                } else if (m.cat === 'Alquiler') {
-                    fondoAlquiler -= montoNum;
                 }
 
                 if (m.cat === 'De padre') {
@@ -359,7 +350,7 @@
             });
 
             document.getElementById('val-disponible').innerText = `S/ ${saldoDisponible.toFixed(2)}`;
-            document.getElementById('val-alquiler').innerText = `S/ ${fondoAlquiler.toFixed(2)}`;
+            document.getElementById('val-alquiler').innerText = `S/ ${FONDO_ALQUILER_FIJO.toFixed(2)}`;
             document.getElementById('val-padre').innerText = `S/ ${fondoPadre.toFixed(2)}`;
         }
 
