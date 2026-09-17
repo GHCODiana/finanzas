@@ -227,7 +227,7 @@
 
         const SALDO_INICIAL_BASE = 719.65;
         const FONDO_ALQUILER_BASE = 724.29;
-        const FONDO_PADRE_BASE = 2426.40;
+        const FONDO_PADRE_BASE = 2406.60;
 
         const movimientosInicialesSeptiembre = [
             { fecha: "01/09", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00 },
@@ -310,19 +310,16 @@
                     saldoDisponible -= montoNum;
                 }
 
-                // 2. Cálculo Fondo Alquiler (Se suma si es Ahorro o incluye 'wardadito')
+                // 2. Cálculo Fondo Alquiler (Se suma si es Ahorro o incluye 'wardadito', se resta si la categoría principal es Alquiler real)
                 if (esAhorroOwardadito) {
                     fondoAlquiler += montoNum;
+                } else if (m.cat === 'Alquiler') {
+                    fondoAlquiler -= montoNum;
                 }
 
                 // 3. Cálculo Fondo Padre dinámico
                 if (m.cat === 'De padre') {
-                    if (m.cat === 'Ingreso' || m.desc.toLowerCase().includes('ingreso')) { // Opcional por si es ingreso de padre
-                        fondoPadre += montoNum;
-                    } else {
-                        // Por defecto cualquier registro en "De padre" resta/suma según naturaleza (asumiremos gasto si no es ingreso explícito)
-                        fondoPadre -= montoNum; 
-                    }
+                    fondoPadre -= montoNum; 
                 }
             });
 
