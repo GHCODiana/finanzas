@@ -343,20 +343,25 @@
                 const descLower = (m.desc || '').toLowerCase();
                 const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
 
+                // 1. Control de Ingresos y Egresos generales para el Saldo Disponible
                 if (m.cat === 'Ingreso') {
                     saldoDisponible += montoNum;
-                } else {
+                } else if (m.cat !== 'De padre') {
+                    // Los gastos de 'De padre' no afectan el saldo personal disponible
                     saldoDisponible -= montoNum;
                 }
 
+                // 2. Control de Ahorros / Fondo Alquiler
                 if (esAhorroOwardadito) {
                     fondoAlquiler += montoNum;
                 }
 
+                // 3. Control de Fondo Padre
                 if (m.cat === 'De padre') {
                     fondoPadre -= montoNum; 
                 }
 
+                // 4. Control de Capital Joyas
                 if (m.cat === 'Joyas') {
                     capitalJoyas += montoNum;
                 }
@@ -605,7 +610,7 @@
         function guardarCheckboxes() {
             const checks = {
                 chk1: document.getElementById('chk-1').checked,
-                _chk2: document.getElementById('chk-2').checked,
+                chk2: document.getElementById('chk-2').checked,
                 chk3: document.getElementById('chk-3').checked,
                 chk4: document.getElementById('chk-4').checked
             };
