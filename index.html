@@ -499,7 +499,6 @@
                 }
             }
             
-            // Si está vacío o nulo, cargamos las deudas iniciales obligatoriamente
             if (!deudas || deudas.length === 0) {
                 deudas = [...deudasIniciales];
                 guardarDeudasStorage();
@@ -606,7 +605,7 @@
         function guardarCheckboxes() {
             const checks = {
                 chk1: document.getElementById('chk-1').checked,
-                chk2: document.getElementById('chk-2').checked,
+                _chk2: document.getElementById('chk-2').checked,
                 chk3: document.getElementById('chk-3').checked,
                 chk4: document.getElementById('chk-4').checked
             };
