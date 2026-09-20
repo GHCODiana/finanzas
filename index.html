@@ -69,8 +69,8 @@
         .btn-del { background: #FFEBEE; color: #C62828; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-del:hover { background: #FFCDD2; }
 
-        .add-form { display: grid; grid-template-columns: 80px 130px 110px 120px 1fr 100px 80px; gap: 8px; margin-top: 12px; align-items: center; }
-        @media (max-width: 900px) { .add-form { grid-template-columns: 1fr; } }
+        .add-form { display: grid; grid-template-columns: 75px 120px 110px 130px 1fr 90px 75px; gap: 6px; margin-top: 12px; align-items: center; }
+        @media (max-width: 992px) { .add-form { grid-template-columns: 1fr; } }
         .add-form input, .add-form select, .add-form button { padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.8rem; }
         .add-form button { background: var(--accent-orange); color: white; font-weight: 600; border: none; cursor: pointer; }
 
@@ -174,7 +174,7 @@
                         <tr>
                             <th>Fecha</th>
                             <th>Tipo</th>
-                            <th>Categoría</th>
+                            <th>Categoría / Destino</th>
                             <th>Descripción</th>
                             <th>Monto</th>
                             <th>Acciones</th>
@@ -186,13 +186,15 @@
 
                 <form class="add-form" id="form-movimiento" onsubmit="agregarMovimiento(event)">
                     <input type="text" id="inp-fecha" placeholder="DD/MM" required>
-                    <select id="inp-tipo-mov" onchange="manejarCambioTipo()">
+                    <select id="inp-tipo-mov" onchange="toggleCamposTransferencia()">
                         <option value="gasto">Gasto (-)</option>
                         <option value="ingreso">Ingreso (+)</option>
                         <option value="transferencia">Transferencia (-)</option>
                         <option value="aumento_padre">Aumento Padre (+)</option>
                         <option value="aumento_alquiler">Aumento Alquiler (+)</option>
                     </select>
+                    
+                    <!-- Selector de Categoría Normal -->
                     <select id="inp-cat">
                         <option>Alimentación</option>
                         <option>Transporte</option>
@@ -202,10 +204,17 @@
                         <option>De padre</option>
                         <option>Joyas</option>
                         <option>Ingreso</option>
-                        <option>Transferencia</option>
                         <option>Otro</option>
                     </select>
-                    <input type="text" id="inp-desc" placeholder="Descripción / Destino" required>
+
+                    <!-- Selector de Cuenta Destino (Solo visible para Transferencias) -->
+                    <select id="inp-destino" style="display:none;">
+                        <option value="Fondo Alquiler">Destino: Fondo Alquiler</option>
+                        <option value="Capital Joyas">Destino: Capital Joyas</option>
+                        <option value="Fondo Padre">Destino: Fondo Padre</option>
+                    </select>
+
+                    <input type="text" id="inp-desc" placeholder="Descripción" required>
                     <input type="number" step="0.01" id="inp-monto" placeholder="Monto S/" required>
                     <button type="submit" id="btn-submit">Guardar</button>
                 </form>
@@ -320,6 +329,20 @@
             document.getElementById('inp-fecha').value = `${diaFormat}/${mesFormat}`;
         }
 
+        function toggleCamposTransferencia() {
+            const tipo = document.getElementById('inp-tipo-mov').value;
+            const catSelect = document.getElementById('inp-cat');
+            const destinoSelect = document.getElementById('inp-destino');
+
+            if (tipo === 'transferencia') {
+                catSelect.style.display = 'none';
+                destinoSelect.style.display = 'block';
+            } else {
+                catSelect.style.display = 'block';
+                destinoSelect.style.display = 'none';
+            }
+        }
+
         function cargarMovimientosMes() {
             const clave = obtenerClaveStorage();
             const movsGuardados = localStorage.getItem(clave);
@@ -348,14 +371,6 @@
             renderizarTabla();
         }
 
-        function manejarCambioTipo() {
-            const tipo = document.getElementById('inp-tipo-mov').value;
-            const catSelect = document.getElementById('inp-cat');
-            if (tipo === 'transferencia') {
-                catSelect.value = 'Transferencia';
-            }
-        }
-
         function calcularSaldos() {
             let saldoDisponible = SALDO_INICIAL_BASE;
             let fondoAlquiler = FONDO_ALQUILER_BASE;
@@ -365,6 +380,7 @@
             movimientos.forEach(m => {
                 const montoNum = parseFloat(m.monto) || 0;
                 const descLower = (m.desc || '').toLowerCase();
+                const catOrDestino = (m.cat || '').toLowerCase();
                 const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
 
                 if (m.tipo === 'ingreso') {
@@ -377,12 +393,12 @@
                     // Sale de tu saldo disponible libre
                     saldoDisponible -= montoNum;
                     
-                    // Ingresa a la cuenta destino según la descripción
-                    if (descLower.includes('alquiler')) {
+                    // Suma a la cuenta destino seleccionada
+                    if (m.cat === 'Fondo Alquiler') {
                         fondoAlquiler += montoNum;
-                    } else if (descLower.includes('joyas') || descLower.includes('nereida')) {
+                    } else if (m.cat === 'Capital Joyas') {
                         capitalJoyas += montoNum;
-                    } else if (descLower.includes('padre')) {
+                    } else if (m.cat === 'Fondo Padre') {
                         fondoPadre += montoNum;
                     }
                 } else if (m.tipo === 'aumento_padre') {
@@ -463,6 +479,7 @@
                 let signo = '-';
                 let color = '#C62828';
                 let tipoTexto = 'Gasto';
+                let categoriaDisplay = m.cat;
 
                 if (m.tipo === 'ingreso') {
                     signo = '+';
@@ -472,6 +489,7 @@
                     signo = '-';
                     color = '#D9641F';
                     tipoTexto = 'Transferencia';
+                    categoriaDisplay = `→ ${m.cat}`;
                 } else if (m.tipo === 'aumento_padre' || m.tipo === 'aumento_alquiler') {
                     signo = '+';
                     color = '#006064';
@@ -488,7 +506,7 @@
                 tr.innerHTML = `
                     <td>${m.fecha}</td>
                     <td style="font-weight:600; font-size:0.75rem;">${tipoTexto}</td>
-                    <td>${m.cat}</td>
+                    <td>${categoriaDisplay}</td>
                     <td>${m.desc}</td>
                     <td style="color:${color}; font-weight:bold;">${signo} S/ ${parseFloat(m.monto).toFixed(2)}</td>
                     <td>
@@ -507,7 +525,15 @@
             e.preventDefault();
             const fecha = document.getElementById('inp-fecha').value;
             const tipo = document.getElementById('inp-tipo-mov').value;
-            const cat = document.getElementById('inp-cat').value;
+            
+            // Si es transferencia, la categoría se toma del selector de destino
+            let cat = '';
+            if (tipo === 'transferencia') {
+                cat = document.getElementById('inp-destino').value;
+            } else {
+                cat = document.getElementById('inp-cat').value;
+            }
+
             const desc = document.getElementById('inp-desc').value;
             const monto = parseFloat(document.getElementById('inp-monto').value);
 
@@ -522,6 +548,7 @@
             guardarEnStorage();
             renderizarTabla();
             document.getElementById('form-movimiento').reset();
+            toggleCamposTransferencia();
 
             const hoy = new Date();
             const mesFormat = (fechaNavegacion.getMonth() + 1).toString().padStart(2, '0');
@@ -535,7 +562,15 @@
 
             document.getElementById('inp-fecha').value = m.fecha;
             document.getElementById('inp-tipo-mov').value = m.tipo || 'gasto';
-            document.getElementById('inp-cat').value = m.cat;
+            
+            toggleCamposTransferencia();
+
+            if (m.tipo === 'transferencia') {
+                document.getElementById('inp-destino').value = m.cat;
+            } else {
+                document.getElementById('inp-cat').value = m.cat;
+            }
+
             document.getElementById('inp-desc').value = m.desc;
             document.getElementById('inp-monto').value = m.monto;
 
