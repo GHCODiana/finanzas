@@ -69,7 +69,8 @@
         .btn-del { background: #FFEBEE; color: #C62828; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-del:hover { background: #FFCDD2; }
 
-        .add-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-top: 12px; }
+        .add-form { display: grid; grid-template-columns: 80px 130px 110px 120px 1fr 100px 80px; gap: 8px; margin-top: 12px; align-items: center; }
+        @media (max-width: 900px) { .add-form { grid-template-columns: 1fr; } }
         .add-form input, .add-form select, .add-form button { padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.8rem; }
         .add-form button { background: var(--accent-orange); color: white; font-weight: 600; border: none; cursor: pointer; }
 
@@ -172,6 +173,7 @@
                     <thead>
                         <tr>
                             <th>Fecha</th>
+                            <th>Tipo</th>
                             <th>Categoría</th>
                             <th>Descripción</th>
                             <th>Monto</th>
@@ -184,6 +186,13 @@
 
                 <form class="add-form" id="form-movimiento" onsubmit="agregarMovimiento(event)">
                     <input type="text" id="inp-fecha" placeholder="DD/MM" required>
+                    <select id="inp-tipo-mov" onchange="manejarCambioTipo()">
+                        <option value="gasto">Gasto (-)</option>
+                        <option value="ingreso">Ingreso (+)</option>
+                        <option value="transferencia">Transferencia (-)</option>
+                        <option value="aumento_padre">Aumento Padre (+)</option>
+                        <option value="aumento_alquiler">Aumento Alquiler (+)</option>
+                    </select>
                     <select id="inp-cat">
                         <option>Alimentación</option>
                         <option>Transporte</option>
@@ -193,9 +202,10 @@
                         <option>De padre</option>
                         <option>Joyas</option>
                         <option>Ingreso</option>
+                        <option>Transferencia</option>
                         <option>Otro</option>
                     </select>
-                    <input type="text" id="inp-desc" placeholder="Descripción" required>
+                    <input type="text" id="inp-desc" placeholder="Descripción / Destino" required>
                     <input type="number" step="0.01" id="inp-monto" placeholder="Monto S/" required>
                     <button type="submit" id="btn-submit">Guardar</button>
                 </form>
@@ -250,14 +260,14 @@
         const FONDO_PADRE_BASE = 2426.40;
 
         const movimientosInicialesSeptiembre = [
-            { fecha: "01/09", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00 },
-            { fecha: "01/09", cat: "Ahorro", desc: "Wardadito Q1", monto: 150.00 },
-            { fecha: "15/09", cat: "Ingreso", desc: "Sueldo Q1", monto: 310.00 },
-            { fecha: "17/09", cat: "Ahorro", desc: "Wardadito", monto: 65.71 },
-            { fecha: "17/09", cat: "De padre", desc: "igualar", monto: 19.80 },
-            { fecha: "17/09", cat: "Alimentación", desc: "tost+leche", monto: 10.60 },
-            { fecha: "17/09", cat: "Alimentación", desc: "platano", monto: 3.90 },
-            { fecha: "17/09", cat: "Ahorro", desc: "Wardadito", monto: 10.00 }
+            { fecha: "01/09", tipo: "gasto", cat: "Alquiler", desc: "Pago Dpto. Setiembre", monto: 720.00 },
+            { fecha: "01/09", tipo: "gasto", cat: "Ahorro", desc: "Wardadito Q1", monto: 150.00 },
+            { fecha: "15/09", tipo: "ingreso", cat: "Ingreso", desc: "Sueldo Q1", monto: 310.00 },
+            { fecha: "17/09", tipo: "gasto", cat: "Ahorro", desc: "Wardadito", monto: 65.71 },
+            { fecha: "17/09", tipo: "gasto", cat: "De padre", desc: "igualar", monto: 19.80 },
+            { fecha: "17/09", tipo: "gasto", cat: "Alimentación", desc: "tost+leche", monto: 10.60 },
+            { fecha: "17/09", tipo: "gasto", cat: "Alimentación", desc: "platano", monto: 3.90 },
+            { fecha: "17/09", tipo: "gasto", cat: "Ahorro", desc: "Wardadito", monto: 10.00 }
         ];
 
         const deudasIniciales = [
@@ -316,6 +326,12 @@
 
             if (movsGuardados) {
                 movimientos = JSON.parse(movsGuardados);
+                movimientos = movimientos.map(m => {
+                    if (!m.tipo) {
+                        m.tipo = m.cat === 'Ingreso' ? 'ingreso' : 'gasto';
+                    }
+                    return m;
+                });
             } else {
                 reiniciarDatosMes();
             }
@@ -332,6 +348,14 @@
             renderizarTabla();
         }
 
+        function manejarCambioTipo() {
+            const tipo = document.getElementById('inp-tipo-mov').value;
+            const catSelect = document.getElementById('inp-cat');
+            if (tipo === 'transferencia') {
+                catSelect.value = 'Transferencia';
+            }
+        }
+
         function calcularSaldos() {
             let saldoDisponible = SALDO_INICIAL_BASE;
             let fondoAlquiler = FONDO_ALQUILER_BASE;
@@ -343,26 +367,40 @@
                 const descLower = (m.desc || '').toLowerCase();
                 const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
 
-                // 1. Control de Ingresos y Egresos generales para el Saldo Disponible
-                if (m.cat === 'Ingreso') {
+                if (m.tipo === 'ingreso') {
                     saldoDisponible += montoNum;
-                } else if (m.cat !== 'De padre') {
-                    // Los gastos de 'De padre' no afectan el saldo personal disponible
+                } else if (m.tipo === 'gasto') {
+                    if (m.cat !== 'De padre') {
+                        saldoDisponible -= montoNum;
+                    }
+                } else if (m.tipo === 'transferencia') {
+                    // Sale de tu saldo disponible libre
                     saldoDisponible -= montoNum;
-                }
-
-                // 2. Control de Ahorros / Fondo Alquiler
-                if (esAhorroOwardadito) {
+                    
+                    // Ingresa a la cuenta destino según la descripción
+                    if (descLower.includes('alquiler')) {
+                        fondoAlquiler += montoNum;
+                    } else if (descLower.includes('joyas') || descLower.includes('nereida')) {
+                        capitalJoyas += montoNum;
+                    } else if (descLower.includes('padre')) {
+                        fondoPadre += montoNum;
+                    }
+                } else if (m.tipo === 'aumento_padre') {
+                    fondoPadre += montoNum;
+                } else if (m.tipo === 'aumento_alquiler') {
                     fondoAlquiler += montoNum;
                 }
 
-                // 3. Control de Fondo Padre
-                if (m.cat === 'De padre') {
+                // Ahorros y gastos automáticos adicionales
+                if (m.tipo === 'gasto' && esAhorroOwardadito) {
+                    fondoAlquiler += montoNum;
+                }
+
+                if (m.tipo === 'gasto' && m.cat === 'De padre') {
                     fondoPadre -= montoNum; 
                 }
 
-                // 4. Control de Capital Joyas
-                if (m.cat === 'Joyas') {
+                if (m.tipo === 'gasto' && m.cat === 'Joyas') {
                     capitalJoyas += montoNum;
                 }
             });
@@ -378,7 +416,8 @@
             
             const gastosPorCat = {};
             movimientos.forEach(m => {
-                if (m.cat !== 'Ingreso') {
+                // Las transferencias e ingresos no se consideran gastos reales del gráfico
+                if (m.tipo === 'gasto') {
                     const monto = parseFloat(m.monto) || 0;
                     gastosPorCat[m.cat] = (gastosPorCat[m.cat] || 0) + monto;
                 }
@@ -421,16 +460,34 @@
             tbody.innerHTML = '';
 
             movimientos.forEach((m, index) => {
-                const isIngreso = m.cat === 'Ingreso';
-                const descLower = (m.desc || '').toLowerCase();
-                const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
-                
-                const color = isIngreso ? '#2E6F40' : (esAhorroOwardadito || m.cat === 'De padre' || m.cat === 'Joyas' ? '#D9641F' : '#C62828');
-                const signo = isIngreso ? '+' : '-';
+                let signo = '-';
+                let color = '#C62828';
+                let tipoTexto = 'Gasto';
+
+                if (m.tipo === 'ingreso') {
+                    signo = '+';
+                    color = '#2E6F40';
+                    tipoTexto = 'Ingreso';
+                } else if (m.tipo === 'transferencia') {
+                    signo = '-';
+                    color = '#D9641F';
+                    tipoTexto = 'Transferencia';
+                } else if (m.tipo === 'aumento_padre' || m.tipo === 'aumento_alquiler') {
+                    signo = '+';
+                    color = '#006064';
+                    tipoTexto = m.tipo === 'aumento_padre' ? 'Aumento Padre' : 'Aumento Alquiler';
+                } else {
+                    const descLower = (m.desc || '').toLowerCase();
+                    const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
+                    if (esAhorroOwardadito || m.cat === 'De padre' || m.cat === 'Joyas') {
+                        color = '#D9641F';
+                    }
+                }
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${m.fecha}</td>
+                    <td style="font-weight:600; font-size:0.75rem;">${tipoTexto}</td>
                     <td>${m.cat}</td>
                     <td>${m.desc}</td>
                     <td style="color:${color}; font-weight:bold;">${signo} S/ ${parseFloat(m.monto).toFixed(2)}</td>
@@ -449,16 +506,17 @@
         function agregarMovimiento(e) {
             e.preventDefault();
             const fecha = document.getElementById('inp-fecha').value;
+            const tipo = document.getElementById('inp-tipo-mov').value;
             const cat = document.getElementById('inp-cat').value;
             const desc = document.getElementById('inp-desc').value;
             const monto = parseFloat(document.getElementById('inp-monto').value);
 
             if (filaEditandoIndex !== null) {
-                movimientos[filaEditandoIndex] = { fecha, cat, desc, monto };
+                movimientos[filaEditandoIndex] = { fecha, tipo, cat, desc, monto };
                 filaEditandoIndex = null;
                 document.getElementById('btn-submit').innerText = "Guardar";
             } else {
-                movimientos.push({ fecha, cat, desc, monto });
+                movimientos.push({ fecha, tipo, cat, desc, monto });
             }
 
             guardarEnStorage();
@@ -476,6 +534,7 @@
             const m = movimientos[index];
 
             document.getElementById('inp-fecha').value = m.fecha;
+            document.getElementById('inp-tipo-mov').value = m.tipo || 'gasto';
             document.getElementById('inp-cat').value = m.cat;
             document.getElementById('inp-desc').value = m.desc;
             document.getElementById('inp-monto').value = m.monto;
