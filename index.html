@@ -7,6 +7,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chart.js para el gráfico circular -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- SDKs de Firebase (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
             --bg-main: #FDFBF7;
@@ -194,7 +199,6 @@
                         <option value="aumento_alquiler">Aumento Alquiler (+)</option>
                     </select>
                     
-                    <!-- Selector de Categoría Normal -->
                     <select id="inp-cat">
                         <option>Alimentación</option>
                         <option>Transporte</option>
@@ -207,7 +211,6 @@
                         <option>Otro</option>
                     </select>
 
-                    <!-- Selector de Cuenta Destino (Solo visible para Transferencias) -->
                     <select id="inp-destino" style="display:none;">
                         <option value="Fondo Alquiler">Destino: Fondo Alquiler</option>
                         <option value="Capital Joyas">Destino: Capital Joyas</option>
@@ -254,6 +257,20 @@
     </div>
 
     <script>
+        // ==========================================
+        // CONFIGURACIÓN DE FIREBASE (TUS CREDENCIALES)
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "PEGA_AQUI_TU_API_KEY",
+            authDomain: "finanzas-152f2.firebaseapp.com",
+            projectId: "finanzas-152f2",
+            storageBucket: "finanzas-152f2.firebasestorage.app",
+            messagingSenderId: "617085171041",
+            appId: "1:617085171041:web:6541596a32f4220ea0120"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         let filaEditandoIndex = null;
         let filaDeudaEditandoIndex = null;
         let movimientos = [];
@@ -288,21 +305,20 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             actualizarVistaMes();
-            cargarMovimientosMes();
-            cargarDeudas();
+            cargarDatosNube();
             cargarCheckboxes();
         });
 
-        function obtenerClaveStorage() {
+        function obtenerIdDocumento() {
             const anio = fechaNavegacion.getFullYear();
             const mes = (fechaNavegacion.getMonth() + 1).toString().padStart(2, '0');
-            return `movimientos_${anio}_${mes}`;
+            return `mes_${anio}_${mes}`;
         }
 
         function cambiarMes(direccion) {
             fechaNavegacion.setMonth(fechaNavegacion.getMonth() + direccion);
             actualizarVistaMes();
-            cargarMovimientosMes();
+            cargarDatosNube();
         }
 
         function actualizarVistaMes() {
@@ -343,22 +359,40 @@
             }
         }
 
-        function cargarMovimientosMes() {
-            const clave = obtenerClaveStorage();
-            const movsGuardados = localStorage.getItem(clave);
+        // Sincronización en Tiempo Real con Firestore (PC y Celular)
+        function cargarDatosNube() {
+            const docId = obtenerIdDocumento();
+            
+            // Movimientos en tiempo real
+            db.collection("finanzas_movimientos").doc(docId).onSnapshot((doc) => {
+                if (doc.exists) {
+                    movimientos = doc.data().lista || [];
+                } else {
+                    movimientos = (docId === 'mes_2026_09') ? [...movimientosInicialesSeptiembre] : [];
+                    guardarMovimientosCloud();
+                }
+                renderizarTabla();
+            });
 
-            if (movsGuardados) {
-                movimientos = JSON.parse(movsGuardados);
-                movimientos = movimientos.map(m => {
-                    if (!m.tipo) {
-                        m.tipo = m.cat === 'Ingreso' ? 'ingreso' : 'gasto';
-                    }
-                    return m;
-                });
-            } else {
-                reiniciarDatosMes();
-            }
-            renderizarTabla();
+            // Deudas en tiempo real
+            db.collection("finanzas_deudas").doc("global").onSnapshot((doc) => {
+                if (doc.exists) {
+                    deudas = doc.data().lista || [];
+                } else {
+                    deudas = [...deudasIniciales];
+                    guardarDeudasCloud();
+                }
+                renderizarDeudas();
+            });
+        }
+
+        function guardarMovimientosCloud() {
+            const docId = obtenerIdDocumento();
+            db.collection("finanzas_movimientos").doc(docId).set({ lista: movimientos }).catch(err => console.error(err));
+        }
+
+        function guardarDeudasCloud() {
+            db.collection("finanzas_deudas").doc("global").set({ lista: deudas }).catch(err => console.error(err));
         }
 
         function reiniciarDatosMes() {
@@ -367,7 +401,7 @@
             } else {
                 movimientos = [];
             }
-            guardarEnStorage();
+            guardarMovimientosCloud();
             renderizarTabla();
         }
 
@@ -380,7 +414,6 @@
             movimientos.forEach(m => {
                 const montoNum = parseFloat(m.monto) || 0;
                 const descLower = (m.desc || '').toLowerCase();
-                const catOrDestino = (m.cat || '').toLowerCase();
                 const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
 
                 if (m.tipo === 'ingreso') {
@@ -390,35 +423,19 @@
                         saldoDisponible -= montoNum;
                     }
                 } else if (m.tipo === 'transferencia') {
-                    // Sale de tu saldo disponible libre
                     saldoDisponible -= montoNum;
-                    
-                    // Suma a la cuenta destino seleccionada
-                    if (m.cat === 'Fondo Alquiler') {
-                        fondoAlquiler += montoNum;
-                    } else if (m.cat === 'Capital Joyas') {
-                        capitalJoyas += montoNum;
-                    } else if (m.cat === 'Fondo Padre') {
-                        fondoPadre += montoNum;
-                    }
+                    if (m.cat === 'Fondo Alquiler') fondoAlquiler += montoNum;
+                    else if (m.cat === 'Capital Joyas') capitalJoyas += montoNum;
+                    else if (m.cat === 'Fondo Padre') fondoPadre += montoNum;
                 } else if (m.tipo === 'aumento_padre') {
                     fondoPadre += montoNum;
                 } else if (m.tipo === 'aumento_alquiler') {
                     fondoAlquiler += montoNum;
                 }
 
-                // Ahorros y gastos automáticos adicionales
-                if (m.tipo === 'gasto' && esAhorroOwardadito) {
-                    fondoAlquiler += montoNum;
-                }
-
-                if (m.tipo === 'gasto' && m.cat === 'De padre') {
-                    fondoPadre -= montoNum; 
-                }
-
-                if (m.tipo === 'gasto' && m.cat === 'Joyas') {
-                    capitalJoyas += montoNum;
-                }
+                if (m.tipo === 'gasto' && esAhorroOwardadito) fondoAlquiler += montoNum;
+                if (m.tipo === 'gasto' && m.cat === 'De padre') fondoPadre -= montoNum; 
+                if (m.tipo === 'gasto' && m.cat === 'Joyas') capitalJoyas += montoNum;
             });
 
             document.getElementById('val-disponible').innerText = `S/ ${saldoDisponible.toFixed(2)}`;
@@ -429,10 +446,9 @@
 
         function actualizarGrafico() {
             const ctx = document.getElementById('graficoGastos').getContext('2d');
-            
             const gastosPorCat = {};
+            
             movimientos.forEach(m => {
-                // Las transferencias e ingresos no se consideran gastos reales del gráfico
                 if (m.tipo === 'gasto') {
                     const monto = parseFloat(m.monto) || 0;
                     gastosPorCat[m.cat] = (gastosPorCat[m.cat] || 0) + monto;
@@ -442,10 +458,7 @@
             const labels = Object.keys(gastosPorCat);
             const data = Object.values(gastosPorCat);
 
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-
+            if (chartInstance) chartInstance.destroy();
             if (labels.length === 0) return;
 
             chartInstance = new Chart(ctx, {
@@ -461,12 +474,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { boxWidth: 12, font: { size: 11 } }
-                        }
-                    }
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
                 }
             });
         }
@@ -482,22 +490,14 @@
                 let categoriaDisplay = m.cat;
 
                 if (m.tipo === 'ingreso') {
-                    signo = '+';
-                    color = '#2E6F40';
-                    tipoTexto = 'Ingreso';
+                    signo = '+'; color = '#2E6F40'; tipoTexto = 'Ingreso';
                 } else if (m.tipo === 'transferencia') {
-                    signo = '-';
-                    color = '#D9641F';
-                    tipoTexto = 'Transferencia';
-                    categoriaDisplay = `→ ${m.cat}`;
+                    signo = '-'; color = '#D9641F'; tipoTexto = 'Transferencia'; categoriaDisplay = `→ ${m.cat}`;
                 } else if (m.tipo === 'aumento_padre' || m.tipo === 'aumento_alquiler') {
-                    signo = '+';
-                    color = '#006064';
-                    tipoTexto = m.tipo === 'aumento_padre' ? 'Aumento Padre' : 'Aumento Alquiler';
+                    signo = '+'; color = '#006064'; tipoTexto = m.tipo === 'aumento_padre' ? 'Aumento Padre' : 'Aumento Alquiler';
                 } else {
                     const descLower = (m.desc || '').toLowerCase();
-                    const esAhorroOwardadito = m.cat === 'Ahorro' || descLower.includes('wardadito');
-                    if (esAhorroOwardadito || m.cat === 'De padre' || m.cat === 'Joyas') {
+                    if (m.cat === 'Ahorro' || descLower.includes('wardadito') || m.cat === 'De padre' || m.cat === 'Joyas') {
                         color = '#D9641F';
                     }
                 }
@@ -525,15 +525,7 @@
             e.preventDefault();
             const fecha = document.getElementById('inp-fecha').value;
             const tipo = document.getElementById('inp-tipo-mov').value;
-            
-            // Si es transferencia, la categoría se toma del selector de destino
-            let cat = '';
-            if (tipo === 'transferencia') {
-                cat = document.getElementById('inp-destino').value;
-            } else {
-                cat = document.getElementById('inp-cat').value;
-            }
-
+            let cat = (tipo === 'transferencia') ? document.getElementById('inp-destino').value : document.getElementById('inp-cat').value;
             const desc = document.getElementById('inp-desc').value;
             const monto = parseFloat(document.getElementById('inp-monto').value);
 
@@ -545,7 +537,7 @@
                 movimientos.push({ fecha, tipo, cat, desc, monto });
             }
 
-            guardarEnStorage();
+            guardarMovimientosCloud();
             renderizarTabla();
             document.getElementById('form-movimiento').reset();
             toggleCamposTransferencia();
@@ -562,7 +554,6 @@
 
             document.getElementById('inp-fecha').value = m.fecha;
             document.getElementById('inp-tipo-mov').value = m.tipo || 'gasto';
-            
             toggleCamposTransferencia();
 
             if (m.tipo === 'transferencia') {
@@ -573,75 +564,39 @@
 
             document.getElementById('inp-desc').value = m.desc;
             document.getElementById('inp-monto').value = m.monto;
-
             document.getElementById('btn-submit').innerText = "Actualizar";
         }
 
         function eliminarMovimiento(index) {
             movimientos.splice(index, 1);
-            guardarEnStorage();
+            guardarMovimientosCloud();
             renderizarTabla();
-        }
-
-        function guardarEnStorage() {
-            const clave = obtenerClaveStorage();
-            localStorage.setItem(clave, JSON.stringify(movimientos));
-        }
-
-        function cargarDeudas() {
-            const deudasGuardadas = localStorage.getItem('deudas_personales');
-            if (deudasGuardadas) {
-                try {
-                    deudas = JSON.parse(deudasGuardadas);
-                } catch(e) {
-                    deudas = [];
-                }
-            }
-            
-            if (!deudas || deudas.length === 0) {
-                deudas = [...deudasIniciales];
-                guardarDeudasStorage();
-            }
-            renderizarDeudas();
         }
 
         function restaurarDeudas() {
             deudas = [...deudasIniciales];
-            guardarDeudasStorage();
+            guardarDeudasCloud();
             renderizarDeudas();
-        }
-
-        function guardarDeudasStorage() {
-            localStorage.setItem('deudas_personales', JSON.stringify(deudas));
         }
 
         function renderizarDeudas() {
             const tbody = document.getElementById('tbody-deudas');
             tbody.innerHTML = '';
 
-            let totalCobrarSoles = 0;
-            let totalCobrarUSD = 0;
-            let totalPagarSoles = 0;
-            let totalPagarUSD = 0;
+            let totalCobrarSoles = 0, totalCobrarUSD = 0, totalPagarSoles = 0, totalPagarUSD = 0;
 
             deudas.forEach((d, index) => {
                 let montoStr = d.monto || "";
-                let montoNum = 0;
                 let esUSD = montoStr.includes('$');
-
-                let numMatch = montoStr.replace(/[^0-9.]/g, '');
-                montoNum = parseFloat(numMatch) || 0;
+                let montoNum = parseFloat(montoStr.replace(/[^0-9.]/g, '')) || 0;
 
                 if (d.tipo === 'Por Cobrar') {
-                    if (esUSD) totalCobrarUSD += montoNum;
-                    else totalCobrarSoles += montoNum;
+                    if (esUSD) totalCobrarUSD += montoNum; else totalCobrarSoles += montoNum;
                 } else {
-                    if (esUSD) totalPagarUSD += montoNum;
-                    else totalPagarSoles += montoNum;
+                    if (esUSD) totalPagarUSD += montoNum; else totalPagarSoles += montoNum;
                 }
 
                 const colorTipo = d.tipo === 'Por Cobrar' ? 'green' : 'red';
-
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${d.concepto}</td>
@@ -677,7 +632,7 @@
                 deudas.push({ concepto, tipo, monto, estado });
             }
 
-            guardarDeudasStorage();
+            guardarDeudasCloud();
             renderizarDeudas();
             document.getElementById('form-deuda').reset();
             document.getElementById('deuda-estado').value = "Pendiente";
@@ -686,18 +641,16 @@
         function editarDeuda(index) {
             filaDeudaEditandoIndex = index;
             const d = deudas[index];
-
             document.getElementById('deuda-concepto').value = d.concepto;
             document.getElementById('deuda-tipo').value = d.tipo;
             document.getElementById('deuda-monto').value = d.monto;
             document.getElementById('deuda-estado').value = d.estado;
-
             document.getElementById('btn-deuda-submit').innerText = "Actualizar";
         }
 
         function eliminarDeuda(index) {
             deudas.splice(index, 1);
-            guardarDeudasStorage();
+            guardarDeudasCloud();
             renderizarDeudas();
         }
 
@@ -719,9 +672,6 @@
                 document.getElementById('chk-2').checked = checks.chk2 ?? true;
                 document.getElementById('chk-3').checked = checks.chk3 ?? false;
                 document.getElementById('chk-4').checked = checks.chk4 ?? false;
-            } else {
-                document.getElementById('chk-1').checked = true;
-                document.getElementById('chk-2').checked = true;
             }
         }
     </script>
